@@ -1,11 +1,8 @@
 .env
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-*.egg-info/
-dist/
-build/
+.env.local
+node_modules/
+.next/
+out/
 *.log
 .DS_Store
+.vercel
