@@ -2,8 +2,15 @@ import type { Campaign, CampaignAnalytics, Lead, EmailAccountHealth } from "./ty
 
 const BASE_URL = "https://server.smartlead.ai/api/v1";
 
+// Module-level override — set by API routes from the request header
+let _apiKeyOverride: string | null = null;
+
+export function setApiKey(key: string) {
+  _apiKeyOverride = key;
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const apiKey = process.env.SMARTLEAD_API_KEY;
+  const apiKey = _apiKeyOverride || process.env.SMARTLEAD_API_KEY;
   if (!apiKey) throw new Error("SMARTLEAD_API_KEY not set");
 
   const separator = path.includes("?") ? "&" : "?";

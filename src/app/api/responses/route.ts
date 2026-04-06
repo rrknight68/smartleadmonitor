@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listCampaigns, getAllCampaignLeads } from "@/lib/smartlead";
+import { configureApiKey } from "@/lib/api-helpers";
 import type { ResponseEvent } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,10 @@ export const dynamic = "force-dynamic";
 const POSITIVE_STATUSES = new Set(["Interested", "interested", "INTERESTED", "Meeting Request"]);
 const REPLY_STATUSES = new Set(["replied", "Replied", "REPLIED"]);
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = configureApiKey(request);
+  if (authError) return authError;
+
   try {
     const campaigns = await listCampaigns();
     const responses: ResponseEvent[] = [];

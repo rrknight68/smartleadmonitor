@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import type {
   CampaignAnalytics,
   BounceEvent,
@@ -9,6 +10,19 @@ import type {
 } from "@/lib/types";
 
 type Tab = "campaigns" | "bounces" | "responses" | "health";
+
+function getApiKey(): string {
+  try {
+    const stored = localStorage.getItem("smartlead_settings");
+    if (stored) {
+      const settings = JSON.parse(stored);
+      return settings.smartlead_api_key || "";
+    }
+  } catch {
+    // ignore
+  }
+  return "";
+}
 
 export default function Dashboard() {
   const [tab, setTab] = useState<Tab>("campaigns");
@@ -19,22 +33,35 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<string>("");
+  const [hasApiKey, setHasApiKey] = useState(true);
 
   const fetchData = useCallback(async () => {
+    const apiKey = getApiKey();
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers["x-smartlead-api-key"] = apiKey;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const [cRes, bRes, rRes, hRes] = await Promise.all([
-        fetch("/api/campaigns"),
-        fetch("/api/bounces"),
-        fetch("/api/responses"),
-        fetch("/api/health"),
+        fetch("/api/campaigns", { headers }),
+        fetch("/api/bounces", { headers }),
+        fetch("/api/responses", { headers }),
+        fetch("/api/health", { headers }),
       ]);
 
-      if (!cRes.ok || !bRes.ok || !rRes.ok || !hRes.ok) {
-        throw new Error("Failed to fetch data. Check your API key.");
+      if (cRes.status === 401) {
+        setHasApiKey(false);
+        throw new Error("API key not configured.");
       }
 
+      if (!cRes.ok || !bRes.ok || !rRes.ok || !hRes.ok) {
+        throw new Error("Failed to fetch data. Check your API key in Settings.");
+      }
+
+      setHasApiKey(true);
       setCampaigns(await cRes.json());
       setBounces(await bRes.json());
       setResponses(await rRes.json());
@@ -84,10 +111,31 @@ export default function Dashboard() {
           >
             {loading ? "Loading..." : "Refresh"}
           </button>
+          <Link
+            href="/settings"
+            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Settings
+          </Link>
         </div>
       </div>
 
-      {error && (
+      {!hasApiKey && (
+        <div className="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-xl text-center">
+          <h2 className="text-lg font-semibold text-blue-900 mb-2">Welcome to SmartLead Monitor</h2>
+          <p className="text-blue-700 mb-4">
+            To get started, add your SmartLead API key in the settings.
+          </p>
+          <Link
+            href="/settings"
+            className="inline-block px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Go to Settings
+          </Link>
+        </div>
+      )}
+
+      {error && hasApiKey && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           {error}
         </div>

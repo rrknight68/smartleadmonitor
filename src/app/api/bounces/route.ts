@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { listCampaigns, getAllCampaignLeads } from "@/lib/smartlead";
+import { configureApiKey } from "@/lib/api-helpers";
 import type { BounceEvent } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const BOUNCE_STATUSES = new Set(["bounced", "BOUNCED", "Bounced"]);
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = configureApiKey(request);
+  if (authError) return authError;
+
   try {
     const campaigns = await listCampaigns();
     const bounces: BounceEvent[] = [];
